@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabbed Mortgage Calculator</title>
+  <link href="https://fonts.googleapis.com/css?family=Poppins:400,500,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --purple: #881eff;
+      --purple-dark: #6c18cc;
+      --blue: #1cb3ff;
+      --green: #00ce4b;
+      --green-dark: #00b203;
+      --white: #ffffff;
+      --gray: #888;
+      --backgroundcalc: #f4f6f9;
+      --red: #ec6884 ;
+      --font: 'Poppins', sans-serif;
+      --tab-bg: #e9ebf1;
+      --tab-active-bg: #fff;
+      --tab-active-outline: #d4d8e7;
+    }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: #f4f6f9;
+      color: #333;
+      overflow-x: hidden;
+    }
+    .mortgage-calculator-wrapper {
+      padding: 1rem;
+      width: 100vw;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+    }
+    .calculator-container {
+      width: 100%;
+      max-width: 1000px;
+      margin: auto;
+      background: #fff;
+      border-radius: 1rem;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      overflow: hidden;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .calculator {
+      display: flex;
+      flex-wrap: wrap;
+      width: 100%;
+      min-width: 0;
+    }
+    .inputs, .chart {
+      flex: 1 1 400px;
+      padding: 2rem 2.5rem 2rem 2.5rem;
+      box-sizing: border-box;
+    }
+    .inputs {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 0;
+    }
+    /* Center tab-bar in column and remove min-width, use content width */
+    .tab-bar {
+      display: flex;
+      gap: 0.5rem;
+      background: var(--tab-bg);
+      padding: 0.5rem;
+      border-radius: 0.7rem;
+      margin-bottom: 1.5rem;
+      align-self: center;
+      width: auto;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      outline: none;
+      color: #181f2c;
+      font-family: var(--font);
+      font-size: 1.02rem;
+      font-weight: 500;
+      padding: 0.3rem 1.1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+    }
+    .tab-btn.active {
+      background: var(--tab-active-bg);
+      color: #181f2c;
+      border: 2px solid var(--tab-active-outline);
+      font-weight: 600;
+      box-shadow: 0 0 10px 0 rgba(34,34,34,0.02);
+    }
+
+    .inputs > .tab-bar {
+      margin-bottom: 1.5rem;
+      margin-top: 0;
+    }
+    .inputs > .editable-group,
+    .inputs > .pmi-dual-group,
+    .inputs > .inline-input,
+    .inputs > .inline-select {
+      margin-top: 1.1rem;
+    }
+    .inputs > .editable-group:first-child,
+    .inputs > .pmi-dual-group:first-child,
+    .inputs > .inline-input:first-child,
+    .inputs > .inline-select:first-child {
+      margin-top: 0;
+    }
+    .inputs input[type=range] {
+      margin-bottom: 0.2rem;
+      margin-top: 0.5rem;
+      accent-color: var(--purple);
+      height: 30px;
+    }
+    .editable-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .editable-group label {
+      margin: 0;
+    }
+    .editable-group input[type=text] {
+      width: 95px;
+      font-size: 1rem;
+      padding: 0.34rem 0.5rem;
+      border-radius: 0.4rem;
+      border: 1px solid #ccc;
+    }
+    .editable-group span {
+      font-weight: normal;
+    }
+    .pmi-dual-group {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+    }
+    .pmi-dual-group label {
+      min-width: 46px;
+      font-weight: bold;
+    }
+    .pmi-dual-group .pmi-col {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .pmi-dual-group input[type=text] {
+      width: 70px;
+      font-size: 1rem;
+      padding: 0.34rem 0.5rem;
+      border-radius: 0.4rem;
+      border: 1px solid #ccc;
+      margin-left: 0.1rem;
+    }
+    .pmi-slash {
+      font-weight: normal;
+      color: var(--gray);
+      margin: 0 0.5rem;
+    }
+    .inline-input {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.7rem;
+    }
+    .inline-input label {
+      flex: 1;
+      margin-right: 0.5rem;
+    }
+    .inline-input input[type=number], .inline-input input[type=text] {
+      flex: 0 0 120px;
+      padding: 0.35rem 0.5rem;
+      border-radius: 0.4rem;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+    .inline-select {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      margin-top: 1.1rem;
+    }
+    .inline-select label {
+      margin-right: 0.5rem;
+    }
+    .inline-select select {
+      font-size: 1rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 0.4rem;
+      border: 1px solid #ccc;
+    }
+    .chart {
+      background: var(--backgroundcalc);
+      border-left: 2px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 2.5rem 2.5rem 2.5rem;
+      position: relative;
+      box-sizing: border-box;
+      justify-content: center;
+      text-align: center;
+      width: 100%;
+    }
+    #chart-title {
+      font-size: 1.6rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--purple-dark);
+      text-align: center;
+      width: 100%;
+      display: block;
+    }
+    #total-payment {
+      font-size: 2.0rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      text-align: center;
+      width: 100%;
+      display: block;
+      color: var(--green-dark);
+    }
+    svg {
+      max-width: 100%;
+      height: auto;
+      transform: rotate(-90deg);
+      display: block;
+      margin: 0 auto;
+    }
+    .pie-slice-hover {
+      transform: scale(1.06);
+      filter: drop-shadow(0 0 7px rgba(0,0,0,0.08));
+      transition: transform 0.23s cubic-bezier(.4,0,.2,1), filter 0.23s cubic-bezier(.4,0,.2,1);
+      transform-origin: 50% 50%;
+    }
+    .breakdown {
+      margin-top: 0.7rem;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .output {
+      color: var(--gray);
+      font-size: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 250px;
+      min-width: 180px;
+      max-width: 100%;
+      gap: 0.1rem;
+      justify-content: center;
+      text-align: center;
+    }
+    .output div {
+      margin: 0.09rem 0;
+      font-weight: 500;
+      font-size: 1.03rem;
+      letter-spacing: 0.01em;
+      text-align: center;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .output .important {
+      color: var(--purple-dark);
+      font-size: 1.06rem;
+      font-weight: bold;
+    }
+    .tooltip {
+      position: absolute;
+      background: #fff;
+      color: #000;
+      padding: 0.5rem 0.8rem;
+      border-radius: 0.4rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      font-size: 0.95rem;
+      pointer-events: none;
+      z-index: 10;
+      display: none;
+      white-space: nowrap;
+    }
+    @media (max-width: 1000px) {
+      .inputs, .chart {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      .output {
+        min-width: 0;
+        width: 100%;
+        max-width: 350px;
+      }
+      .tab-bar {
+        min-width: 0;
+      }
+    }
+    @media (max-width: 768px) {
+      .chart {
+        order: -1;
+        border-left: none;
+        border-bottom: 2px solid #ddd;
+        padding: 1.2rem 1rem 2rem 1rem !important;
+        width: 100vw;
+        min-width: 0;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .inputs, .chart {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+      }
+      .breakdown {
+        width: 100%;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .output {
+        min-width: 0;
+        width: 100%;
+        max-width: 350px;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .tab-bar {
+        min-width: 0;
+      }
+    }
+    @media (max-width: 600px) {
+      .inputs, .chart {
+        padding: 1rem !important;
+      }
+      .chart {
+        width: 100vw;
+        min-width: 0;
+      }
+      #chart-title,
+      #total-payment {
+        text-align: center;
+        width: 100%;
+        display: block;
+      }
+      .breakdown {
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .output {
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .tab-bar {
+        min-width: 0;
+      }
+    }
+    @media (max-width: 480px) {
+      .output {
+        max-width: 98vw;
+        width: 98vw;
+      }
+      .output div {
+        font-size: 0.98rem;
+      }
+      .chart {
+        width: 100vw;
+        min-width: 0;
+      }
+      .tab-bar {
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="mortgage-calculator-wrapper">
+    <div class="calculator-container">
+      <div class="calculator" id="calculator">
+        <!-- Inputs and Chart will be rendered here -->
+      </div>
+    </div>
+  </div>
+  <script>
+    // Utility functions
+    const $ = id => document.getElementById(id);
+    const format = x => Number(x).toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    function parseNum(val) {
+      if (typeof val === 'number') return val;
+      return parseFloat(val.toString().replace(/[^0-9.]/g, '')) || 0;
+    }
+
+    // Default model for all programs
+    let model = {
+      purchasePrice: 500000,
+      downPaymentPct: 5,
+      downPaymentAmt: 25000,
+      interestRate: 6.5,
+      loanTerm: 30,
+      pmiRate: 0.44,
+      pmiAmt: 175,
+      taxes: 2500,
+      insurance: 1200,
+      hoa: 0,
+      vaUsage: 'first', // For VA only
+    };
+    let lastPMIRate = model.pmiRate;
+    let lastPMIAmt = model.pmiAmt;
+
+    // HTML for each program's fields
+    function getInputsHTML(tab) {
+      // Shared fields
+      let html = `<div class="inputs">
+      <div class="tab-bar" id="tab-bar">
+        <button class="tab-btn${tab === "conventional" ? " active" : ""}" data-tab="conventional">Conventional</button>
+        <button class="tab-btn${tab === "fha" ? " active" : ""}" data-tab="fha">FHA</button>
+        <button class="tab-btn${tab === "va" ? " active" : ""}" data-tab="va">VA</button>
+      </div>
+          <div class="editable-group">
+            <label for="purchase-price-text">Purchase Price: $</label>
+            <input type="text" id="purchase-price-text" value="${model.purchasePrice.toLocaleString()}">
+          </div>
+          <input type="range" id="purchase-price" min="50000" max="2000000" step="5000" value="${model.purchasePrice}">
+          <div class="editable-group">
+            <label for="down-payment-pct-text">Down Payment:</label>
+            <input type="text" id="down-payment-pct-text" value="${model.downPaymentPct}" size="3" style="width:3.5em;"> <span>%</span>
+            <span>or $</span>
+            <input type="text" id="down-payment-amt-text" value="${model.downPaymentAmt.toLocaleString()}" size="8" style="width:6em;">
+          </div>
+          <input type="range" id="down-payment" min="0" max="99" step="0.5" value="${model.downPaymentPct}">
+          <div class="editable-group">
+            <label for="interest-rate-text">Interest Rate:</label>
+            <input type="text" id="interest-rate-text" value="${model.interestRate}" size="4" style="width:3.7em;"> <span>%</span>
+          </div>
+          <input type="range" id="interest-rate" min="0" max="15" step="0.125" value="${model.interestRate}">
+          <div class="editable-group">
+            <label for="loan-term-text">Loan Term:</label>
+            <input type="text" id="loan-term-text" value="${model.loanTerm}" size="2" style="width:2.5em;"> <span>years</span>
+          </div>
+          <input type="range" id="loan-term" min="8" max="30" step="1" value="${model.loanTerm}">
+      `;
+
+      if (tab === 'conventional') {
+        html += `
+          <div class="pmi-dual-group">
+            <label>PMI:</label>
+            <div class="pmi-col">
+              <input type="text" id="pmi-amt-text" value="${model.pmiAmt}">
+              <span>$ / mo</span>
+            </div>
+            <span class="pmi-slash">or</span>
+            <div class="pmi-col">
+              <input type="text" id="pmi-rate-text" value="${model.pmiRate}">
+              <span>% / yr</span>
+            </div>
+          </div>
+          <input type="range" id="pmi" min="0" max="1.5" step="0.01" value="${model.pmiRate}">
+        `;
+      }
+      if (tab === 'va') {
+        html += `
+          <div class="inline-select">
+            <label for="va-usage">VA Funding Fee:</label>
+            <select id="va-usage">
+              <option value="first"${model.vaUsage === "first" ? " selected" : ""}>First Use</option>
+              <option value="subsequent"${model.vaUsage === "subsequent" ? " selected" : ""}>Subsequent Use</option>
+              <option value="irrrl"${model.vaUsage === "irrrl" ? " selected" : ""}>IRRRL (Refinance)</option>
+              <option value="exempt"${model.vaUsage === "exempt" ? " selected" : ""}>Exempt (VA Disability)</option>
+            </select>
+          </div>
+        `;
+      }
+      html += `
+          <div class="inline-input">
+            <label for="taxes">Annual Taxes ($):</label>
+            <input type="text" id="taxes" value="${model.taxes.toLocaleString()}">
+          </div>
+          <div class="inline-input">
+            <label for="insurance">Annual Insurance ($):</label>
+            <input type="text" id="insurance" value="${model.insurance.toLocaleString()}">
+          </div>
+          <div class="inline-input">
+            <label for="hoa">Monthly HOA ($):</label>
+            <input type="text" id="hoa" value="${model.hoa.toLocaleString()}">
+          </div>
+        </div>
+      `;
+      return html;
+    }
+
+    // Chart/output wrapper
+    function getChartHTML(tab) {
+      return `
+        <div class="chart">
+          <div id="chart-title">Estimated Total Monthly Payment</div>
+          <div id="total-payment">$0.00</div>
+          <svg id="pieChart" width="300" height="300" viewBox="-2 -2 36 36"></svg>
+          <div class="tooltip" id="tooltip"></div>
+          <div class="breakdown">
+            <div class="output" id="output"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render calculator UI
+    function renderCalculator(tab) {
+      const calc = $('calculator');
+      calc.innerHTML = getInputsHTML(tab) + getChartHTML(tab);
+      bindTabEvents(tab);
+      bindInputEvents(tab);
+      update(tab);
+    }
+
+    // --- EVENT BINDINGS FOR TABS ---
+    function bindTabEvents(currentTab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === currentTab);
+        btn.onclick = function() {
+          if (btn.dataset.tab !== currentTab) {
+            switchTab(btn.dataset.tab);
+          }
+        };
+      });
+    }
+
+    // --- EVENT BINDINGS FOR ALL FIELDS ---
+    function bindInputEvents(tab) {
+      function formatCurrencyInput(e) {
+        const input = e.target;
+        const prevValue = input.value;
+        const prevPos = input.selectionStart;
+        let raw = prevValue.replace(/[^0-9.]/g, '');
+        let formatted = '';
+        if (raw) {
+          let parts = raw.split('.');
+          parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+          formatted = parts.join('.');
+        }
+        input.value = formatted;
+        let newPos = prevPos + (formatted.length - prevValue.length);
+        input.setSelectionRange(newPos, newPos);
+        return raw;
+      }
+      // Purchase price
+      $('purchase-price-text').addEventListener('input', (e) => {
+        let raw = formatCurrencyInput(e);
+        model.purchasePrice = parseNum(raw);
+        $('purchase-price').value = model.purchasePrice;
+        updateDownPaymentFields();
+        update(tab);
+      });
+      $('purchase-price').addEventListener('input', (e) => {
+        model.purchasePrice = +e.target.value;
+        $('purchase-price-text').value = model.purchasePrice.toLocaleString();
+        updateDownPaymentFields();
+        update(tab);
+      });
+      // Down payment
+      $('down-payment-amt-text').addEventListener('input', (e) => {
+        let raw = formatCurrencyInput(e);
+        model.downPaymentAmt = parseNum(raw);
+        model.downPaymentPct = model.purchasePrice > 0 ? Math.round((model.downPaymentAmt / model.purchasePrice) * 1000) / 10 : 0;
+        $('down-payment-pct-text').value = model.downPaymentPct;
+        $('down-payment').value = model.downPaymentPct;
+        update(tab);
+      });
+      $('down-payment-pct-text').addEventListener('input', (e) => {
+        model.downPaymentPct = parseNum(e.target.value);
+        model.downPaymentAmt = Math.round(model.purchasePrice * model.downPaymentPct / 100);
+        $('down-payment').value = model.downPaymentPct;
+        $('down-payment-amt-text').value = model.downPaymentAmt.toLocaleString();
+        update(tab);
+      });
+      $('down-payment').addEventListener('input', (e) => {
+        model.downPaymentPct = +e.target.value;
+        model.downPaymentAmt = Math.round(model.purchasePrice * model.downPaymentPct / 100);
+        $('down-payment-pct-text').value = model.downPaymentPct;
+        $('down-payment-amt-text').value = model.downPaymentAmt.toLocaleString();
+        update(tab);
+      });
+      // Interest rate
+      $('interest-rate-text').addEventListener('input', (e) => {
+        model.interestRate = parseFloat(e.target.value) || 0;
+        $('interest-rate').value = model.interestRate;
+        update(tab);
+      });
+      $('interest-rate').addEventListener('input', (e) => {
+        model.interestRate = +e.target.value;
+        $('interest-rate-text').value = model.interestRate;
+        update(tab);
+      });
+      // Loan term
+      $('loan-term-text').addEventListener('input', (e) => {
+        model.loanTerm = parseInt(e.target.value, 10) || 0;
+        $('loan-term').value = model.loanTerm;
+        update(tab);
+      });
+      $('loan-term').addEventListener('input', (e) => {
+        model.loanTerm = +e.target.value;
+        $('loan-term-text').value = model.loanTerm;
+        update(tab);
+      });
+      // PMI for Conventional
+      if (tab === 'conventional') {
+        // PMI: percent (slider in %)
+        $('pmi').addEventListener('input', (e) => {
+          model.pmiRate = parseFloat(e.target.value);
+          let loan = model.purchasePrice - model.downPaymentAmt;
+          model.pmiAmt = Math.round(loan * (model.pmiRate / 100) / 12);
+          $('pmi-rate-text').value = model.pmiRate.toFixed(2);
+          $('pmi-amt-text').value = model.pmiAmt.toLocaleString();
+          lastPMIRate = model.pmiRate;
+          lastPMIAmt = model.pmiAmt;
+          update(tab);
+        });
+        // PMI $: format with commas as you type
+        $('pmi-amt-text').addEventListener('input', (e) => {
+          let raw = formatCurrencyInput(e);
+          model.pmiAmt = parseNum(raw);
+          let loan = model.purchasePrice - model.downPaymentAmt;
+          model.pmiRate = loan > 0 ? ((model.pmiAmt * 12 / loan) * 100) : 0;
+          $('pmi-rate-text').value = model.pmiRate.toFixed(2);
+          $('pmi').value = model.pmiRate.toFixed(2);
+          lastPMIRate = model.pmiRate;
+          lastPMIAmt = model.pmiAmt;
+          update(tab);
+        });
+        // PMI %: allow decimals, but no formatting
+        $('pmi-rate-text').addEventListener('input', (e) => {
+          model.pmiRate = parseFloat(e.target.value) || 0;
+          let loan = model.purchasePrice - model.downPaymentAmt;
+          model.pmiAmt = Math.round(loan * (model.pmiRate / 100) / 12);
+          $('pmi-amt-text').value = model.pmiAmt.toLocaleString();
+          $('pmi').value = model.pmiRate.toFixed(2);
+          lastPMIRate = model.pmiRate;
+          lastPMIAmt = model.pmiAmt;
+          update(tab);
+        });
+      }
+      // VA Funding Fee select
+      if (tab === 'va') {
+        $('va-usage').addEventListener('change', (e) => {
+          model.vaUsage = e.target.value;
+          update(tab);
+        });
+      }
+      // Taxes, Insurance, HOA
+      ['taxes', 'insurance', 'hoa'].forEach(id => {
+        $(id).addEventListener('input', (e) => {
+          let raw = formatCurrencyInput(e);
+          model[id] = parseNum(raw);
+          update(tab);
+        });
+      });
+    }
+
+    // --- CHART ---
+    function drawPie(data) {
+      const svg = $("pieChart");
+      if (!svg) return;
+      const total = data.reduce((a, b) => a + b.value, 0) || 1;
+      let start = 0;
+      let colors = ['var(--purple)', 'var(--blue)', 'var(--green)', 'var(--gray)', 'var(--red)'];
+      svg.innerHTML = '';
+      data.forEach((slice, i) => {
+        const val = slice.value / total;
+        const x1 = 16 + 16 * Math.cos(2 * Math.PI * start);
+        const y1 = 16 + 16 * Math.sin(2 * Math.PI * start);
+        const end = start + val;
+        const x2 = 16 + 16 * Math.cos(2 * Math.PI * end);
+        const y2 = 16 + 16 * Math.sin(2 * Math.PI * end);
+        const largeArc = val > 0.5 ? 1 : 0;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M16,16 L${x1},${y1} A16,16 0 ${largeArc},1 ${x2},${y2} Z`);
+        path.setAttribute("fill", colors[i % colors.length]);
+        path.setAttribute("stroke", "#fff");
+        path.setAttribute("stroke-width", "0.2");
+        path.setAttribute("opacity", "1");
+        path.style.transition = "transform 0.23s cubic-bezier(.4,0,.2,1), filter 0.23s cubic-bezier(.4,0,.2,1)";
+        path.addEventListener('mouseenter', (e) => {
+          path.classList.add('pie-slice-hover');
+          $("tooltip").innerHTML = `
+            <div style="font-size: 1rem; font-weight: 600;">${slice.label}</div>
+            <div style="color: ${colors[i % colors.length]}; font-size: 1.1rem; font-weight: bold;">
+              ${format(slice.value)}
+            </div>
+          `;
+          $("tooltip").style.display = 'block';
+        });
+        path.addEventListener('mousemove', (e) => {
+          const svgRect = svg.getBoundingClientRect();
+          $("tooltip").style.left = `${e.clientX - svgRect.left + 10}px`;
+          $("tooltip").style.top = `${e.clientY - svgRect.top + 10}px`;
+        });
+        path.addEventListener('mouseleave', () => {
+          path.classList.remove('pie-slice-hover');
+          $("tooltip").style.display = 'none';
+        });
+        svg.appendChild(path);
+        start = end;
+      });
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", "16");
+      circle.setAttribute("cy", "16");
+      circle.setAttribute("r", "8");
+      circle.setAttribute("fill", "var(--backgroundcalc)");
+      svg.appendChild(circle);
+    }
+
+    // --- FHA MIP LOGIC ---
+    function getFhaAnnualMIPRate({ baseLoan, ltv, loanTermYears }) {
+      const maxBase = 726200;
+      const amtTier = baseLoan <= maxBase ? "<=726,200" : ">726,200";
+      let rate = 0;
+      let mipText = "";
+      if (loanTermYears > 15) {
+        if (amtTier === "<=726,200") {
+          if (ltv <= 95)      { rate = 0.0050; mipText = "0.50%"; }
+          else                { rate = 0.0055; mipText = "0.55%"; }
+        } else {
+          if (ltv <= 95)      { rate = 0.0070; mipText = "0.70%"; }
+          else                { rate = 0.0075; mipText = "0.75%"; }
+        }
+      } else { // 15 years or less
+        if (amtTier === "<=726,200") {
+          if (ltv <= 90)                          { rate = 0.0015; mipText = "0.15%"; }
+          else                                    { rate = 0.0040; mipText = "0.40%"; }
+        } else {
+          if (ltv <= 78)                          { rate = 0.0015; mipText = "0.15%"; }
+          else if (ltv <= 90)                     { rate = 0.0040; mipText = "0.40%"; }
+          else                                    { rate = 0.0065; mipText = "0.65%"; }
+        }
+      }
+      return { annualMIPRate: rate, mipText };
+    }
+
+    // --- VA Funding Fee Logic ---
+    function getVaFundingFeePct({ vaUsage, downPct }) {
+      downPct = Number(downPct);
+      if (vaUsage === "exempt") return 0;
+      if (vaUsage === "irrrl") return 0.005;
+      if (vaUsage === "first") {
+        if (downPct < 5) return 0.0215;
+        if (downPct < 10) return 0.015;
+        return 0.0125;
+      }
+      if (vaUsage === "subsequent") {
+        if (downPct < 5) return 0.033;
+        if (downPct < 10) return 0.015;
+        return 0.0125;
+      }
+      return 0;
+    }
+    function getVaFundingFeePctText({ vaUsage, downPct }) {
+      downPct = Number(downPct);
+      if (vaUsage === "exempt") return "0%";
+      if (vaUsage === "irrrl") return "0.5%";
+      if (vaUsage === "first") {
+        if (downPct < 5) return "2.15%";
+        if (downPct < 10) return "1.5%";
+        return "1.25%";
+      }
+      if (vaUsage === "subsequent") {
+        if (downPct < 5) return "3.3%";
+        if (downPct < 10) return "1.5%";
+        return "1.25%";
+      }
+      return "0%";
+    }
+
+    // --- MAIN UPDATE for each tab ---
+    function update(tab) {
+      // Common values
+      const price = model.purchasePrice;
+      const dpPct = model.downPaymentPct;
+      const down = model.downPaymentAmt;
+      const rate = model.interestRate / 100 / 12;
+      const years = model.loanTerm;
+      const months = years * 12;
+      const taxes = model.taxes / 12;
+      const ins = model.insurance / 12;
+      const hoa = model.hoa;
+      let chartData = [];
+      if (tab === "conventional") {
+        const loan = price - down;
+        const ltv = price > 0 ? (loan / price) * 100 : 0;
+        // PMI logic
+        if (ltv <= 80) {
+          // Save previous
+          lastPMIRate = model.pmiRate;
+          lastPMIAmt = model.pmiAmt;
+          model.pmiAmt = 0;
+          model.pmiRate = 0;
+          $('pmi-amt-text').value = 0;
+          $('pmi-rate-text').value = 0;
+          $('pmi').value = 0;
+          $('pmi-amt-text').setAttribute('disabled', 'disabled');
+          $('pmi-rate-text').setAttribute('disabled', 'disabled');
+          $('pmi').setAttribute('disabled', 'disabled');
+        } else {
+          $('pmi-amt-text').removeAttribute('disabled');
+          $('pmi-rate-text').removeAttribute('disabled');
+          $('pmi').removeAttribute('disabled');
+          // Restore previous if currently zero
+          if (
+            parseNum($('pmi-amt-text').value) === 0 &&
+            parseFloat($('pmi-rate-text').value) === 0
+          ) {
+            model.pmiRate = lastPMIRate;
+            model.pmiAmt = Math.round(loan * (lastPMIRate / 100) / 12);
+            $('pmi-rate-text').value = lastPMIRate;
+            $('pmi').value = lastPMIRate;
+            $('pmi-amt-text').value = model.pmiAmt.toLocaleString();
+          }
+        }
+        const P = loan;
+        const monthlyPI = rate > 0 ? P * rate / (1 - Math.pow(1 + rate, -months)) : (months > 0 ? P / months : 0);
+        const total = monthlyPI + taxes + ins + hoa + model.pmiAmt;
+        $('output').innerHTML = `
+          <div>Principal & Interest: ${format(monthlyPI)}</div>
+          <div>Taxes: ${format(taxes)}</div>
+          <div>Insurance: ${format(ins)}</div>
+          <div>PMI: ${format(model.pmiAmt)}</div>
+          <div>HOA: ${format(hoa)}</div>
+        `;
+        $('total-payment').textContent = format(total);
+        chartData = [
+          { label: 'Principal & Interest', value: monthlyPI },
+          { label: 'Taxes', value: taxes },
+          { label: 'Insurance', value: ins },
+          { label: 'HOA', value: hoa },
+          { label: 'PMI', value: model.pmiAmt }
+        ];
+      } else if (tab === "fha") {
+        const baseLoan = price - down;
+        const ltv = price > 0 ? (baseLoan / price) * 100 : 0;
+        const { annualMIPRate, mipText } = getFhaAnnualMIPRate({ baseLoan, ltv, loanTermYears: years });
+        const annualMIP = baseLoan * annualMIPRate;
+        const monthlyMIP = annualMIP / 12;
+        // UFMIP
+        const ufmipPct = 0.0175;
+        const ufmip = baseLoan * ufmipPct;
+        const totalLoan = baseLoan + ufmip;
+        // PI calculation uses totalLoan
+        const P = totalLoan;
+        const monthlyPI = rate > 0 ? P * rate / (1 - Math.pow(1 + rate, -months)) : (months > 0 ? P / months : 0);
+        const total = monthlyPI + taxes + ins + hoa + monthlyMIP;
+        $('output').innerHTML = `
+          <div>Principal & Interest: ${format(monthlyPI)}</div>
+          <div>Taxes: ${format(taxes)}</div>
+          <div>Insurance: ${format(ins)}</div>
+          <div>MIP: ${format(monthlyMIP)} <span style="font-weight:normal;">(${mipText})</span></div>
+          <div>HOA: ${format(hoa)}</div>
+          <div>Total Loan: ${format(totalLoan)}</div>
+        `;
+        $('total-payment').textContent = format(total);
+        chartData = [
+          { label: 'Principal & Interest', value: monthlyPI },
+          { label: 'Taxes', value: taxes },
+          { label: 'Insurance', value: ins },
+          { label: 'HOA', value: hoa },
+          { label: 'MIP', value: monthlyMIP }
+        ];
+      } else if (tab === "va") {
+        const baseLoan = price - down;
+        const vaUsage = model.vaUsage;
+        const fundingFeePct = getVaFundingFeePct({ vaUsage, downPct: dpPct });
+        const fundingFee = baseLoan * fundingFeePct;
+        const fundingFeePctText = getVaFundingFeePctText({ vaUsage, downPct: dpPct });
+        const totalLoan = baseLoan + fundingFee;
+        const P = totalLoan;
+        const monthlyPI = rate > 0 ? P * rate / (1 - Math.pow(1 + rate, -months)) : (months > 0 ? P / months : 0);
+        const total = monthlyPI + taxes + ins + hoa;
+        $('output').innerHTML = `
+          <div>Principal & Interest: ${format(monthlyPI)}</div>
+          <div>Taxes: ${format(taxes)}</div>
+          <div>Insurance: ${format(ins)}</div>
+          <div>HOA: ${format(hoa)}</div>
+          <div>VA FF: ${format(fundingFee)} <span style="font-weight:normal;">(${fundingFeePctText})</span></div>
+          <div>Total VA Loan: ${format(totalLoan)}</div>
+        `;
+        $('total-payment').textContent = format(total);
+        chartData = [
+          { label: 'Principal & Interest', value: monthlyPI },
+          { label: 'Taxes', value: taxes },
+          { label: 'Insurance', value: ins },
+          { label: 'HOA', value: hoa }
+        ];
+      }
+      drawPie(chartData);
+    }
+
+    // --- TAB BAR LOGIC ---
+    function switchTab(tab) {
+      renderCalculator(tab);
+    }
+
+    // --- UTILS ---
+    function updateDownPaymentFields() {
+      model.downPaymentAmt = Math.round(model.purchasePrice * model.downPaymentPct / 100);
+      $('down-payment-amt-text').value = model.downPaymentAmt.toLocaleString();
+      $('down-payment-pct-text').value = model.downPaymentPct;
+      $('down-payment').value = model.downPaymentPct;
+    }
+
+    // --- INITIAL RENDER ---
+    renderCalculator('conventional');
+  </script>
+</body>
+</html>

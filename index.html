@@ -65,7 +65,6 @@
       justify-content: flex-start;
       gap: 0;
     }
-    /* Center tab-bar in column and remove min-width, use content width */
     .tab-bar {
       display: flex;
       gap: 0.5rem;
@@ -96,7 +95,6 @@
       font-weight: 600;
       box-shadow: 0 0 10px 0 rgba(34,34,34,0.02);
     }
-
     .inputs > .tab-bar {
       margin-bottom: 1.5rem;
       margin-top: 0;
@@ -338,6 +336,23 @@
       .tab-bar {
         min-width: 0;
       }
+      /* --- Fix for PMI stacked %/yr on mobile --- */
+      .pmi-col {
+        flex-direction: row;
+      }
+      .pmi-dual-group .pmi-col input[type="text"] + span {
+        display: inline;
+        white-space: nowrap;
+      }
+      @media (max-width: 600px) {
+        .pmi-col {
+          flex-direction: row;
+        }
+        .pmi-dual-group .pmi-col input[type="text"] + span {
+          display: inline;
+          white-space: nowrap;
+        }
+      }
     }
     @media (max-width: 600px) {
       .inputs, .chart {
@@ -366,6 +381,14 @@
       .tab-bar {
         min-width: 0;
       }
+      /* --- Extra fix for PMI stacked %/yr on small screens --- */
+      .pmi-col {
+        flex-direction: row;
+      }
+      .pmi-dual-group .pmi-col input[type="text"] + span {
+        display: inline;
+        white-space: nowrap;
+      }
     }
     @media (max-width: 480px) {
       .output {
@@ -381,6 +404,14 @@
       }
       .tab-bar {
         min-width: 0;
+      }
+      /* --- Extra fix for PMI stacked %/yr on very small screens --- */
+      .pmi-col {
+        flex-direction: row;
+      }
+      .pmi-dual-group .pmi-col input[type="text"] + span {
+        display: inline;
+        white-space: nowrap;
       }
     }
   </style>
@@ -422,6 +453,7 @@
       insurance: 1200,
       hoa: 0,
       vaUsage: 'first', // For VA only
+      _pmiWasDisabled: false // Track if PMI was disabled due to LTV <= 80%
     };
     let lastPMIRate = model.pmiRate;
     let lastPMIAmt = model.pmiAmt;
@@ -470,7 +502,7 @@
             <span class="pmi-slash">or</span>
             <div class="pmi-col">
               <input type="text" id="pmi-rate-text" value="${model.pmiRate}">
-              <span>% / yr</span>
+              <span class="pmi-rate-unit">% / yr</span>
             </div>
           </div>
           <input type="range" id="pmi" min="0" max="1.5" step="0.01" value="${model.pmiRate}">
@@ -656,6 +688,29 @@
           lastPMIAmt = model.pmiAmt;
           update(tab);
         });
+
+        // PMI $/PMI % dynamic updates for price/down changes
+        ['purchase-price', 'purchase-price-text', 'down-payment', 'down-payment-pct-text', 'down-payment-amt-text'].forEach(id => {
+          if ($(id)) {
+            $(id).addEventListener('input', () => {
+              let loan = model.purchasePrice - model.downPaymentAmt;
+              // Only auto-update PMI $ if PMI % is not zero and not disabled
+              if (parseFloat($('pmi-rate-text').value) > 0 && !$('pmi-rate-text').disabled) {
+                model.pmiAmt = Math.round(loan * (model.pmiRate / 100) / 12);
+                $('pmi-amt-text').value = model.pmiAmt.toLocaleString();
+                lastPMIAmt = model.pmiAmt;
+              }
+              // If user last edited PMI as $, update PMI % as well
+              if (parseNum($('pmi-amt-text').value) > 0 && !$('pmi-amt-text').disabled) {
+                model.pmiRate = loan > 0 ? ((model.pmiAmt * 12 / loan) * 100) : 0;
+                $('pmi-rate-text').value = model.pmiRate.toFixed(2);
+                $('pmi').value = model.pmiRate.toFixed(2);
+                lastPMIRate = model.pmiRate;
+              }
+              update(tab);
+            });
+          }
+        });
       }
       // VA Funding Fee select
       if (tab === 'va') {
@@ -806,9 +861,11 @@
         const ltv = price > 0 ? (loan / price) * 100 : 0;
         // PMI logic
         if (ltv <= 80) {
-          // Save previous
-          lastPMIRate = model.pmiRate;
-          lastPMIAmt = model.pmiAmt;
+          // Save previous only if not already zero (so we don't overwrite user set values)
+          if (model.pmiAmt > 0 || model.pmiRate > 0) {
+            lastPMIRate = model.pmiRate;
+            lastPMIAmt = model.pmiAmt;
+          }
           model.pmiAmt = 0;
           model.pmiRate = 0;
           $('pmi-amt-text').value = 0;
@@ -817,22 +874,36 @@
           $('pmi-amt-text').setAttribute('disabled', 'disabled');
           $('pmi-rate-text').setAttribute('disabled', 'disabled');
           $('pmi').setAttribute('disabled', 'disabled');
+          model._pmiWasDisabled = true; // Track that we just disabled it
         } else {
+          // Only restore if we just re-enabled PMI fields
+          if (model._pmiWasDisabled) {
+            model.pmiRate = lastPMIRate || 0;
+            let loan = price - down;
+            model.pmiAmt = lastPMIAmt || Math.round(loan * (model.pmiRate / 100) / 12);
+            $('pmi-rate-text').value = model.pmiRate.toFixed(2);
+            $('pmi').value = model.pmiRate.toFixed(2);
+            $('pmi-amt-text').value = model.pmiAmt.toLocaleString();
+            model._pmiWasDisabled = false;
+          }
           $('pmi-amt-text').removeAttribute('disabled');
           $('pmi-rate-text').removeAttribute('disabled');
           $('pmi').removeAttribute('disabled');
-          // Restore previous if currently zero
-          if (
-            parseNum($('pmi-amt-text').value) === 0 &&
-            parseFloat($('pmi-rate-text').value) === 0
-          ) {
-            model.pmiRate = lastPMIRate;
-            model.pmiAmt = Math.round(loan * (lastPMIRate / 100) / 12);
-            $('pmi-rate-text').value = lastPMIRate;
-            $('pmi').value = lastPMIRate;
-            $('pmi-amt-text').value = model.pmiAmt.toLocaleString();
-          }
         }
+        // On update, always ensure PMI $ is dynamically updated if PMI % is set (not zero)
+        if (model.pmiRate > 0 && loan > 0 && !$('pmi-rate-text').disabled) {
+          model.pmiAmt = Math.round(loan * (model.pmiRate / 100) / 12);
+          $('pmi-amt-text').value = model.pmiAmt.toLocaleString();
+          lastPMIAmt = model.pmiAmt;
+        }
+        // If user last edited PMI as $, keep PMI % in sync
+        if (parseNum($('pmi-amt-text').value) > 0 && loan > 0 && !$('pmi-amt-text').disabled) {
+          model.pmiRate = loan > 0 ? ((model.pmiAmt * 12 / loan) * 100) : 0;
+          $('pmi-rate-text').value = model.pmiRate.toFixed(2);
+          $('pmi').value = model.pmiRate.toFixed(2);
+          lastPMIRate = model.pmiRate;
+        }
+
         const P = loan;
         const monthlyPI = rate > 0 ? P * rate / (1 - Math.pow(1 + rate, -months)) : (months > 0 ? P / months : 0);
         const total = monthlyPI + taxes + ins + hoa + model.pmiAmt;

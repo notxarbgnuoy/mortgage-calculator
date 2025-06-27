@@ -131,6 +131,7 @@
       padding: 0.34rem 0.5rem;
       border-radius: 0.4rem;
       border: 1px solid #ccc;
+      box-sizing: border-box;
     }
     .editable-group span {
       font-weight: normal;
@@ -156,6 +157,7 @@
       border-radius: 0.4rem;
       border: 1px solid #ccc;
       margin-left: 0.1rem;
+      box-sizing: border-box;
     }
     .pmi-slash {
       font-weight: normal;
@@ -178,6 +180,7 @@
       border-radius: 0.4rem;
       border: 1px solid #ccc;
       font-size: 1rem;
+      box-sizing: border-box;
     }
     .inline-select {
       display: flex;
@@ -288,6 +291,9 @@
       z-index: 10;
       display: none;
       white-space: nowrap;
+    }
+    .inputs input[type="text"] {
+      box-sizing: border-box;
     }
     @media (max-width: 1000px) {
       .inputs, .chart {
@@ -412,6 +418,25 @@
       .pmi-dual-group .pmi-col input[type="text"] + span {
         display: inline;
         white-space: nowrap;
+      }
+      /* --- Responsive input fix for iPhone/small screens --- */
+      .inputs input[type="text"] {
+        width: 100%;
+        min-width: 0;
+        max-width: 140px;
+        box-sizing: border-box;
+        font-size: 1rem;
+      }
+      .editable-group,
+      .pmi-dual-group,
+      .inline-input {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .pmi-dual-group .pmi-col {
+        min-width: 0;
+        width: auto;
+        max-width: 100%;
       }
     }
   </style>
